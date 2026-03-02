@@ -1,152 +1,148 @@
-📘 Setup Guide – High Availability & Disaster Recovery on AWS
+# 📘 Setup Guide – High Availability & Disaster Recovery on AWS
 
-🏗️ Step 1: Create VPCs in Two Regions
-🔹 Region A – Primary (e.g., Asia Pacific – Mumbai)
+This guide explains how to deploy a Multi-Region High Availability and Disaster Recovery (HA/DR) architecture on AWS.
 
-Use: Amazon Web Services Region ap-south-1
+## 🏗️ Step 1: Create VPCs in Two Regions
 
-Create VPC
+### 🔹 Region A – Primary (e.g., Asia Pacific – Mumbai)
 
-CIDR block: 10.0.0.0/16
+Use: Amazon Web Services Region **ap-south-1**
 
-Create 2 Public Subnets in different Availability Zones
+* Create VPC
 
-Attach Internet Gateway
+  * CIDR block: `10.0.0.0/16`
+* Create 2 Public Subnets in different Availability Zones
+* Attach Internet Gateway
+* Update Route Table to allow internet access
 
-Update Route Table to allow internet access
+---
 
-🔹 Region B – Secondary / DR (e.g., singapor)
+### 🔹 Region B – Secondary / DR (e.g., singapore)
 
-Region: us-east-1
+Region: **ap-southeast-1**
 
-Create VPC
+* Create VPC
 
-CIDR block: 20.0.0.0/16
+  * CIDR block: `20.0.0.0/16`
+* Create 2 Public Subnets in different Availability Zones
+* Attach Internet Gateway
+* Configure Route Table
 
-Create 2 Public Subnets in different Availability Zones
+---
 
-Attach Internet Gateway
+## ⚙️ Step 2: Launch EC2 Instances & Auto Scaling
 
-Configure Route Table
+Go to EC2 Dashboard in **Region A**
 
-⚙️ Step 2: Launch EC2 Instances & Auto Scaling
+### 🔹 Create Launch Template
 
-Go to EC2 Dashboard in Region A
+* AMI: Amazon Linux 2 / Ubuntu
+* Instance Type: `t2.micro`
+* Security Group:
 
-🔹 Create Launch Template
+  * Allow HTTP (80)
+  * Allow HTTPS (443)
+  * Allow SSH (22)
 
-AMI: Amazon Linux 2 / Ubuntu
+### 🔹 User Data Script (Region A)
 
-Instance Type: t2.micro
-
-Security Group:
-
-Allow HTTP (80)
-
-Allow HTTPS (443)
-
-Allow SSH (22)
-
-🔹 User Data Script (Region A)
+```bash
 #!/bin/bash
 yum install -y httpd
 systemctl start httpd
 systemctl enable httpd
 echo "Hello from Region A" > /var/www/html/index.html
-🔹 Create Auto Scaling Group (ASG)
+```
 
-Attach to 2 public subnets
+---
 
-Minimum: 2
+### 🔹 Create Auto Scaling Group (ASG)
 
-Desired: 2
+* Attach to 2 public subnets
+* Minimum: 2
+* Desired: 2
+* Maximum: 4
 
-Maximum: 4
+---
 
-🔹 Repeat in Region B
+### 🔹 Repeat in Region B
 
 Change user data:
 
+```bash
 echo "Hello from Region B" > /var/www/html/index.html
-🌐 Step 3: Setup Target Group & Load Balancer
-In Region A:
+```
 
-Create Target Group
+---
 
-Register EC2 instances
+## 🌐 Step 3: Setup Target Group & Load Balancer
 
-Create Application Load Balancer (ALB)
+### In Region A:
 
-Attach ALB to 2 public subnets
+1. Create Target Group
+2. Register EC2 instances
+3. Create Application Load Balancer (ALB)
+4. Attach ALB to 2 public subnets
+5. Configure Listener:
 
-Configure Listener:
+   * HTTP (80) → Forward to Target Group
+6. Attach ASG to Target Group
 
-HTTP (80) → Forward to Target Group
+Repeat the same steps in **Region B**.
 
-Attach ASG to Target Group
+---
 
-Repeat the same steps in Region B.
-
-🌍 Step 4: Configure DNS Failover using Route 53
+## 🌍 Step 4: Configure DNS Failover using Route 53
 
 Use: Amazon Route 53
 
-Go to Route 53 → Hosted Zones
+1. Go to Route 53 → Hosted Zones
+2. Create Hosted Zone (example: `myhaapp.com`)
+3. Create 2 A Records with Failover Policy
 
-Create Hosted Zone (example: myhaapp.com)
+### 🔹 Primary Record
 
-Create 2 A Records with Failover Policy
+* Alias → ALB DNS (Region A)
+* Set Health Check
 
-🔹 Primary Record
+### 🔹 Secondary Record
 
-Alias → ALB DNS (Region A)
+* Alias → ALB DNS (Region B)
 
-Set Health Check
+### ✅ Behavior
 
-🔹 Secondary Record
+* If Region A is UP → Traffic goes to Region A
+* If Region A is DOWN → Traffic automatically shifts to Region B
 
-Alias → ALB DNS (Region B)
+---
 
-✅ Behavior
+## 🔍 Step 5: Testing Disaster Recovery
 
-If Region A is UP → Traffic goes to Region A
+* Stop all EC2 instances in Region A
+* Route 53 detects health check failure
+* Traffic redirects to Region B
+* Restart Region A → Traffic returns to Primary
 
-If Region A is DOWN → Traffic automatically shifts to Region B
+---
 
-🔍 Step 5: Testing Disaster Recovery
-
-Stop all EC2 instances in Region A
-
-Route 53 detects health check failure
-
-Traffic redirects to Region B
-
-Restart Region A → Traffic returns to Primary
-
-📊 Monitoring & Logging
+## 📊 Monitoring & Logging
 
 Use: Amazon CloudWatch
 
-Enable CloudWatch Alarms:
+* Enable CloudWatch Alarms:
 
-CPU Utilization
+  * CPU Utilization
+  * Instance Health
+* Enable ALB Access Logs → Store in S3
+* Configure SNS Alerts for failure notifications
 
-Instance Health
+---
 
-Enable ALB Access Logs → Store in S3
+## ✅ Final Architecture Summary
 
-Configure SNS Alerts for failure notifications
-
-✅ Final Architecture Summary
-
-2 VPCs across 2 AWS Regions
-
-Auto Scaling Groups in both regions
-
-Application Load Balancer per region
-
-Route 53 DNS Failover configuration
-
-CloudWatch Monitoring & Alerts
-
-Disaster Recovery tested successfully
+* 2 VPCs across 2 AWS Regions
+* Auto Scaling Groups in both regions
+* Application Load Balancer per region
+* Route 53 DNS Failover configuration
+* CloudWatch Monitoring & Alerts
+* Disaster Recovery tested successfully
