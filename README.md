@@ -1,5 +1,7 @@
 This project demonstrates a highly available and disaster recovery architecture deployed on AWS. The infrastructure is designed to minimize downtime and ensure business continuity in case of failures
 ---
+![image](https://github.com/username/repo-name/assets/xxxxx)
+
 
 # 📌 AWS High Availability & Disaster Recovery (HA/DR) Project
 
