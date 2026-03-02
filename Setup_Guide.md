@@ -1,4 +1,5 @@
 Setup Guide – High Availability & Disaster Recovery on AWS
+
 🏗️ Step 1: Create VPCs in Two Regions
 Go to VPC Dashboard.
 
@@ -10,6 +11,7 @@ Create VPC-2 in Region B (e.g., us-east-1 – N. Virginia).
 
 CIDR block: 20.0.0.0/16
 Create 2 public subnets in different AZs.
+
 ⚙️ Step 2: Launch EC2 Instances & Auto Scaling
 Go to EC2 Dashboard in Region A.
 
@@ -35,6 +37,7 @@ Min size = 2, Desired = 2, Max = 4.
 Repeat steps in Region B, but update User Data:
 
 echo "Hello from Region B" > /var/www/html/index.html
+
 🌐 Step 3: Setup Target Group and Load Balancers
 In Region A, create an Target Group.
 
@@ -46,6 +49,7 @@ Attach ALB to the 2 subnets in different AZs.
 Target Group → attach the ASG.
 Listener → HTTP (80) forward to Target Group.
 Repeat the same steps in Region B.
+
 
 🌍 Step 4: Configure Route 53 for Failover
 Go to Route 53 → Hosted Zones.
@@ -61,6 +65,7 @@ Test DNS:
 
 If Region A is UP → traffic goes to Region A.
 If Region A is DOWN → Route 53 sends traffic to Region B.
+
 🔍 Step 5: Testing Disaster Recovery
 Stop all EC2 instances in Region A → Route 53 will failover to Region B.
 Restart Region A instances → traffic will return to primary region.
