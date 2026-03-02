@@ -1,80 +1,152 @@
-Setup Guide – High Availability & Disaster Recovery on AWS
+📘 Setup Guide – High Availability & Disaster Recovery on AWS
 
 🏗️ Step 1: Create VPCs in Two Regions
-Go to VPC Dashboard.
+🔹 Region A – Primary (e.g., Asia Pacific – Mumbai)
 
-Create VPC-1 in Region A (e.g., ap-south-1 – Mumbai).
+Use: Amazon Web Services Region ap-south-1
+
+Create VPC
 
 CIDR block: 10.0.0.0/16
-Create 2 public subnets in different AZs.
-Create VPC-2 in Region B (e.g., us-east-1 – N. Virginia).
+
+Create 2 Public Subnets in different Availability Zones
+
+Attach Internet Gateway
+
+Update Route Table to allow internet access
+
+🔹 Region B – Secondary / DR (e.g., singapor)
+
+Region: us-east-1
+
+Create VPC
 
 CIDR block: 20.0.0.0/16
-Create 2 public subnets in different AZs.
+
+Create 2 Public Subnets in different Availability Zones
+
+Attach Internet Gateway
+
+Configure Route Table
 
 ⚙️ Step 2: Launch EC2 Instances & Auto Scaling
-Go to EC2 Dashboard in Region A.
 
-Create a Launch Template with:
+Go to EC2 Dashboard in Region A
 
-Amazon Linux 2 / Ubuntu AMI
+🔹 Create Launch Template
 
-Instance type: t2.micro (for testing)
+AMI: Amazon Linux 2 / Ubuntu
 
-Security group: allow HTTP (80), HTTPS (443), SSH (22).
+Instance Type: t2.micro
 
-User Data (optional for web app):
+Security Group:
 
+Allow HTTP (80)
+
+Allow HTTPS (443)
+
+Allow SSH (22)
+
+🔹 User Data Script (Region A)
 #!/bin/bash
 yum install -y httpd
 systemctl start httpd
 systemctl enable httpd
 echo "Hello from Region A" > /var/www/html/index.html
-Create an Auto Scaling Group (ASG) using this launch template.
+🔹 Create Auto Scaling Group (ASG)
 
-Attach ASG to 2 subnets in Region A.
-Min size = 2, Desired = 2, Max = 4.
-Repeat steps in Region B, but update User Data:
+Attach to 2 public subnets
+
+Minimum: 2
+
+Desired: 2
+
+Maximum: 4
+
+🔹 Repeat in Region B
+
+Change user data:
 
 echo "Hello from Region B" > /var/www/html/index.html
+🌐 Step 3: Setup Target Group & Load Balancer
+In Region A:
 
-🌐 Step 3: Setup Target Group and Load Balancers
-In Region A, create an Target Group.
+Create Target Group
 
-select EC2 instances that you want to target.
+Register EC2 instances
 
-In Region A, create an Application Load Balancer (ALB).
+Create Application Load Balancer (ALB)
 
-Attach ALB to the 2 subnets in different AZs.
-Target Group → attach the ASG.
-Listener → HTTP (80) forward to Target Group.
+Attach ALB to 2 public subnets
+
+Configure Listener:
+
+HTTP (80) → Forward to Target Group
+
+Attach ASG to Target Group
+
 Repeat the same steps in Region B.
 
+🌍 Step 4: Configure DNS Failover using Route 53
 
-🌍 Step 4: Configure Route 53 for Failover
-Go to Route 53 → Hosted Zones.
+Use: Amazon Route 53
 
-Create a new hosted zone (e.g., myhaapp.com).
+Go to Route 53 → Hosted Zones
 
-Add 2 A-records with failover policy:
+Create Hosted Zone (example: myhaapp.com)
 
-Record 1 (Primary) → Alias → ALB DNS name (Region A).
-Record 2 (Secondary) → Alias → ALB DNS name (Region B).
-Set health check for Region A load balancer.
-Test DNS:
+Create 2 A Records with Failover Policy
 
-If Region A is UP → traffic goes to Region A.
-If Region A is DOWN → Route 53 sends traffic to Region B.
+🔹 Primary Record
+
+Alias → ALB DNS (Region A)
+
+Set Health Check
+
+🔹 Secondary Record
+
+Alias → ALB DNS (Region B)
+
+✅ Behavior
+
+If Region A is UP → Traffic goes to Region A
+
+If Region A is DOWN → Traffic automatically shifts to Region B
 
 🔍 Step 5: Testing Disaster Recovery
-Stop all EC2 instances in Region A → Route 53 will failover to Region B.
-Restart Region A instances → traffic will return to primary region.
+
+Stop all EC2 instances in Region A
+
+Route 53 detects health check failure
+
+Traffic redirects to Region B
+
+Restart Region A → Traffic returns to Primary
+
 📊 Monitoring & Logging
-Enable CloudWatch Alarms for CPU, Memory, and Instance Health.
-Enable ALB Access Logs to S3.
-Setup SNS Alerts for failures.
-✅ Final Architecture
-2 VPCs across 2 AWS regions.
-Auto Scaling Groups with 2 EC2 instances each.
-Load Balancer per region.
-Route 53 DNS Failover between regions.
+
+Use: Amazon CloudWatch
+
+Enable CloudWatch Alarms:
+
+CPU Utilization
+
+Instance Health
+
+Enable ALB Access Logs → Store in S3
+
+Configure SNS Alerts for failure notifications
+
+✅ Final Architecture Summary
+
+2 VPCs across 2 AWS Regions
+
+Auto Scaling Groups in both regions
+
+Application Load Balancer per region
+
+Route 53 DNS Failover configuration
+
+CloudWatch Monitoring & Alerts
+
+Disaster Recovery tested successfully
